@@ -289,10 +289,10 @@ async function run() {
           success:false,
           error:"Failed to process payment",
           details:error.message
-        });
-      }
+      })
       
-    })
+    }
+  })
 
 
 
