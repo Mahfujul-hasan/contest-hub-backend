@@ -206,93 +206,105 @@ async function run() {
     app.patch('/payment-success', async (req, res) => {
       try {
         const sessionId = req.query.session_id;
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      const transactionId = session.payment_intent;
-      const query = { transactionId: transactionId }
-      const existingPayment = await paymentCollection.findOne(query);
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const transactionId = session.payment_intent;
+        const query = { transactionId: transactionId }
+        const existingPayment = await paymentCollection.findOne(query);
 
-      if (existingPayment) {
-        return res.send({ message: "Payment already processed", transactionId })
-      }
-
-
-      if (session.payment_status === "paid") {
-
-        const paymentRecord = {
-          userId: session.metadata.participantId,
-          userName: session.metadata.participantName,
-          userEmail: session.metadata.participantEmail,
-          userImage: session.metadata.participantPhoto,
-          contestId: session.metadata.contestId,
-          contestName: session.metadata.contestName,
-          contestType: session.metadata.contestType,
-          amount: session.amount_total / 100,
-          currency: session.currency,
-          transactionId: transactionId,
-          paymentStatus: session.payment_status,
-          paidAt: new Date()
+        if (existingPayment) {
+          return res.send({ message: "Payment already processed", transactionId })
         }
 
-        const paymentResult = await paymentCollection.insertOne(paymentRecord);
 
-        const participationRecord = {
-          userId: session.metadata.participantId,
-          userName: session.metadata.participantName,
-          userEmail: session.metadata.participantEmail,
-          userImage: session.metadata.participantPhoto,
-          contestId: session.metadata.contestId,
-          contestName: session.metadata.contestName,
-          contestType: session.metadata.contestType,
-          entryPrice: parseInt(session.metadata.entryPrice),
-          deadline: session.metadata.deadline,
-          paymentStatus: session.payment_status,
-          transactionId: transactionId,
-          participatedAt: new Date()
-        };
+        if (session.payment_status === "paid") {
 
-        const participationResult= await participationCollection.insertOne(participationRecord)
+          const paymentRecord = {
+            userId: session.metadata.participantId,
+            userName: session.metadata.participantName,
+            userEmail: session.metadata.participantEmail,
+            userImage: session.metadata.participantPhoto,
+            contestId: session.metadata.contestId,
+            contestName: session.metadata.contestName,
+            contestType: session.metadata.contestType,
+            amount: session.amount_total / 100,
+            currency: session.currency.toUpperCase(),
+            transactionId: transactionId,
+            paymentStatus: session.payment_status,
+            paidAt: new Date()
+          }
 
-        const queryContest={_id:new ObjectId(session.metadata.contestId)}
-        const updateContest = {
-          $inc:{participantsCount:1}
-        }
-        const contestUpdateResult=await contestCollection.updateOne(queryContest,updateContest)
+          const paymentResult = await paymentCollection.insertOne(paymentRecord);
 
-        const queryUser={_id:new ObjectId(session.metadata.participantId)}
-        const updateUser={
-          $inc:{totalParticipation:1}
-        }
-        const userUpdateResult =await usersCollection.updateOne(queryUser,updateUser);
-        res.send({
-          success:true,
-          message:"Payment successful! You are now registered for the contest.",
-          data:{
-            transactionId:transactionId,
-            contestId:session.metadata.contestId,
-            paymentInserted:paymentResult.acknowledged,
-            participationInserted:participationResult.acknowledged,
-            contestUpdated:contestUpdateResult.modifiedCount>0,
-            userUpdated:userUpdateResult.matchedCount>0
+          const participationRecord = {
+            userId: session.metadata.participantId,
+            userName: session.metadata.participantName,
+            userEmail: session.metadata.participantEmail,
+            userImage: session.metadata.participantPhoto,
+            contestId: session.metadata.contestId,
+            contestName: session.metadata.contestName,
+            contestType: session.metadata.contestType,
+            entryPrice: parseInt(session.metadata.entryPrice),
+            deadline: session.metadata.deadline,
+            paymentStatus: session.payment_status,
+            transactionId: transactionId,
+            participatedAt: new Date()
+          };
 
+          const participationResult = await participationCollection.insertOne(participationRecord)
+
+          const contest = await contestCollection.findOne({ _id: new ObjectId(session.metadata.contestId) });
+
+          if (contest.participantsCount === null || contest.participantsCount === undefined) {
+            const queryContest = { _id: new ObjectId(session.metadata.contestId) }
+            const updateContest = {
+              $set: { participantsCount: 1 }
+            }
+            const contestUpdateResult = await contestCollection.updateOne(queryContest, updateContest)
+          } else {
+            const queryContest = { _id: new ObjectId(session.metadata.contestId) }
+            const updateContest = {
+              $inc: { participantsCount: 1 }
+            }
+            const contestUpdateResult = await contestCollection.updateOne(queryContest, updateContest)
 
           }
-        })
-      } else {
-        res.send({
-          success: false,
-          message: 'Payment was not completed',
-          paymentStatus: session.payment_status
-        });
-      }
+
+
+          const queryUser = { _id: new ObjectId(session.metadata.participantId) }
+          const updateUser = {
+            $inc: { totalParticipation: 1 }
+          }
+          const userUpdateResult = await usersCollection.updateOne(queryUser, updateUser);
+          res.send({
+            success: true,
+            message: "Payment successful! You are now registered for the contest.",
+            data: {
+              transactionId: transactionId,
+              contestId: session.metadata.contestId,
+              paymentInserted: paymentResult.acknowledged,
+              participationInserted: participationResult.acknowledged,
+              contestUpdated: contestUpdateResult.modifiedCount > 0,
+              userUpdated: userUpdateResult.matchedCount > 0
+
+
+            }
+          })
+        } else {
+          res.send({
+            success: false,
+            message: 'Payment was not completed',
+            paymentStatus: session.payment_status
+          });
+        }
       } catch (error) {
         res.status(500).send({
-          success:false,
-          error:"Failed to process payment",
-          details:error.message
-      })
-      
-    }
-  })
+          success: false,
+          error: "Failed to process payment",
+          details: error.message
+        })
+
+      }
+    })
 
 
 
