@@ -283,7 +283,7 @@ async function run() {
           paymentStatus: session.payment_status
         });
       }
-      res.send({ success: true })
+      // update
     })
 
 
