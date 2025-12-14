@@ -115,7 +115,9 @@ async function run() {
     app.post('/users', async (req, res) => {
       const userInfo = req.body;
       userInfo.role = "user";
-      userInfo.createdAt = new Date()
+      userInfo.createdAt = new Date();
+      userInfo.totalParticipations=0;
+      userInfo.totalWins=0;
       const email = userInfo.email;
       const existingUser = await usersCollection.findOne({ email });
       if (existingUser) {
@@ -254,18 +256,19 @@ async function run() {
 
           const contest = await contestCollection.findOne({ _id: new ObjectId(session.metadata.contestId) });
 
+          let contestUpdateResult;
           if (contest.participantsCount === null || contest.participantsCount === undefined) {
             const queryContest = { _id: new ObjectId(session.metadata.contestId) }
             const updateContest = {
               $set: { participantsCount: 1 }
             }
-            const contestUpdateResult = await contestCollection.updateOne(queryContest, updateContest)
+            contestUpdateResult = await contestCollection.updateOne(queryContest, updateContest)
           } else {
             const queryContest = { _id: new ObjectId(session.metadata.contestId) }
             const updateContest = {
               $inc: { participantsCount: 1 }
             }
-            const contestUpdateResult = await contestCollection.updateOne(queryContest, updateContest)
+            contestUpdateResult = await contestCollection.updateOne(queryContest, updateContest)
 
           }
 
