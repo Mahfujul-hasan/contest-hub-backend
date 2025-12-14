@@ -204,7 +204,8 @@ async function run() {
     });
 
     app.patch('/payment-success', async (req, res) => {
-      const sessionId = req.query.session_id;
+      try {
+        const sessionId = req.query.session_id;
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       const transactionId = session.payment_intent;
       const query = { transactionId: transactionId }
@@ -283,7 +284,10 @@ async function run() {
           paymentStatus: session.payment_status
         });
       }
-      // update
+      } catch (error) {
+        
+      }
+      
     })
 
 
