@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const db = client.db("contest-hub-db");
     const usersCollection = db.collection("users");
@@ -134,7 +134,7 @@ async function run() {
       const result = await contestCollection.insertOne(contestInfo)
       res.send(result);
     })
-    app.patch('/contests/:id', verifyJWT, verifyCreator, async (req, res) => {
+    app.patch('/contests/:id', verifyJWT, async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "invalid contest Id" })
@@ -180,13 +180,13 @@ async function run() {
     })
 
     app.get('/contests/approved', async (req, res) => {
-      const { limit,searchQuery } = req.query;
-      const query={
-        status:"approved",
+      const { limit, searchQuery } = req.query;
+      const query = {
+        status: "approved",
 
       }
-      if(searchQuery){
-        query.contestType={$regex:searchQuery, $options:"i"}
+      if (searchQuery) {
+        query.contestType = { $regex: searchQuery, $options: "i" }
       }
 
 
@@ -194,7 +194,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/contests/winner/:userId',verifyJWT, async (req, res) => {
+    app.get('/contests/winner/:userId', verifyJWT, async (req, res) => {
       try {
         const userId = req.params.userId;
 
@@ -202,7 +202,7 @@ async function run() {
           return res.status(400).send({ message: "Invalid user ID" });
         }
 
-        const query={winnerId:userId}
+        const query = { winnerId: userId }
 
         const result = await contestCollection.find(query).toArray();
 
@@ -274,7 +274,7 @@ async function run() {
 
     app.get('/users', verifyJWT, async (req, res) => {
 
-      const result = await usersCollection.find().sort({totalWins:-1}).toArray()
+      const result = await usersCollection.find().sort({ totalWins: -1 }).toArray()
       res.send(result)
     })
     app.get('/users/:email', verifyJWT, async (req, res) => {
@@ -344,6 +344,22 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/submissions/user-submission-status', async (req, res) => {
+      const { userId, contestId } = req.query;
+      if (!userId || !contestId) {
+        return res.status(400).send({
+          error: 'Both userId and contestId are required',
+          hasSubmitted: false
+        })
+      }
+      const query={
+      userId: userId,
+      contestId: contestId
+    }
+      const submission = await submissionCollection.findOne(query);
+    res.send(submission._id)
+    })
+
     app.patch('/submissions/:id', verifyJWT, verifyCreator, async (req, res) => {
       try {
         const id = req.params.id;
@@ -378,18 +394,18 @@ async function run() {
               winnerPhoto: submission.userPhoto
             }
           })
-        const contest=await contestCollection.findOne({ _id: new ObjectId(submission.contestId) })
-        if(!contest){
+        const contest = await contestCollection.findOne({ _id: new ObjectId(submission.contestId) })
+        if (!contest) {
           return res.status(404).send({ message: "Contest not found" });
         }
-        const winnerInfo={
-          winnerId:submission.userId,
-          winnerName:submission.userName,
-          winnerPhoto:submission.userPhoto,
-          contestName:submission.contestName,
-          contestType:contest.contestType,
-          prizeMoney:contest.prizeMoney,
-          createdAt:new Date()
+        const winnerInfo = {
+          winnerId: submission.userId,
+          winnerName: submission.userName,
+          winnerPhoto: submission.userPhoto,
+          contestName: submission.contestName,
+          contestType: contest.contestType,
+          prizeMoney: contest.prizeMoney,
+          createdAt: new Date()
         }
         await winnersCollection.insertOne(winnerInfo)
         res.send({ success: true, message: "Winner declared successfully" });
@@ -402,10 +418,10 @@ async function run() {
 
 
     // winner related api
-    app.get('/winners',async(req,res)=>{
-      
-      const result=await winnersCollection.find().sort({
-        createdAt:-1
+    app.get('/winners', async (req, res) => {
+
+      const result = await winnersCollection.find().sort({
+        createdAt: -1
       }).limit(3).toArray()
       res.send(result);
     })
@@ -563,8 +579,8 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
