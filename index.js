@@ -344,7 +344,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/submissions/user-submission-status', async (req, res) => {
+    app.get('/submissions/user-submission-status',verifyJWT, async (req, res) => {
       const { userId, contestId } = req.query;
       if (!userId || !contestId) {
         return res.status(400).send({
