@@ -277,7 +277,7 @@ async function run() {
       const result = await usersCollection.find().sort({ totalWins: -1 }).toArray()
       res.send(result)
     })
-    app.get('/users/:email', verifyJWT, async (req, res) => {
+    app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await usersCollection.findOne(query)
