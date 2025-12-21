@@ -7,13 +7,6 @@ const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 3000
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-const admin = require("firebase-admin");
-
-const serviceAccount = require("./contest-hub-frontend-firebase-adminsdk.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vqc4z0k.mongodb.net/?appName=Cluster0`;
@@ -29,22 +22,6 @@ const client = new MongoClient(uri, {
 app.use(express.json());
 app.use(cors())
 
-const verifyFBToken = async (req, res, next) => {
-  const token = req.headers?.authorization;
-
-  if (!token) {
-    return res.status(401).send({ message: "Unauthorized access" })
-  }
-  try {
-    const idToken = token.split(' ')[1];
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    req.decoded_email = decoded.email;
-    next()
-  } catch (error) {
-    res.status(401).send({ message: "Unauthorized access" })
-  }
-
-}
 
 // jwt middleware 
 const verifyJWT = (req, res, next) => {
