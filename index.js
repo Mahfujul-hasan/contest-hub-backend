@@ -422,7 +422,7 @@ async function run() {
 
       const result = await winnersCollection.find().sort({
         createdAt: -1
-      }).limit(3).toArray()
+      }).limit(4).toArray()
       res.send(result);
     })
 
