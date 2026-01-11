@@ -226,6 +226,9 @@ async function run() {
       res.send(result)
     })
 
+
+
+
     // participation related api
 
     app.get('/participations', verifyJWT, async (req, res) => {
@@ -240,18 +243,26 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/participations/:search', verifyJWT, async (req, res) => {
-      const search = req.params.search;
-      const query = {}
-      if (search) {
-        query.userId = search
+    app.get('/participations/:search',verifyJWT, async (req, res) => {
+      const { search } = req.params;
+      let query = {};
+
+      // Check if it's a valid ObjectId (search by userId)
+      if (ObjectId.isValid(search) && search.length === 24) {
+        query.userId = search;
       } else {
+        // Otherwise, search by userEmail
         query.userEmail = search;
       }
 
-      const result = await participationCollection.find(query).toArray()
-      res.send(result)
-    })
+      const result = await participationCollection.find(query).toArray();
+
+      if (!result.length) {
+        return res.status(404).send({ message: "No participations found" });
+      }
+
+      res.send(result);
+    });
 
 
     // user related API 
@@ -344,7 +355,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/submissions/user-submission-status',verifyJWT, async (req, res) => {
+    app.get('/submissions/user-submission-status', verifyJWT, async (req, res) => {
       const { userId, contestId } = req.query;
       if (!userId || !contestId) {
         return res.status(400).send({
@@ -352,12 +363,12 @@ async function run() {
           hasSubmitted: false
         })
       }
-      const query={
-      userId: userId,
-      contestId: contestId
-    }
+      const query = {
+        userId: userId,
+        contestId: contestId
+      }
       const submission = await submissionCollection.findOne(query);
-    res.send(submission._id)
+      res.send(submission._id)
     })
 
     app.patch('/submissions/:id', verifyJWT, verifyCreator, async (req, res) => {
